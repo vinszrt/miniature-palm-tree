@@ -1,6 +1,6 @@
 Projeto de jogo com gráficos 3D desenvolvido para a disciplina de Computer Graphics na UFABC.
 
-[Disponível em WebAssembly](https://vinszrt.github.io/miniature-palm-tree/public/)
+[Disponível em WebAssembly](https://vinszrt.github.io/miniature-palm-tree/public/) : https://vinszrt.github.io/miniature-palm-tree/public/
 
 ### Aluno
 
