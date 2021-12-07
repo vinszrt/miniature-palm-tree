@@ -128,11 +128,10 @@ void OpenGLWindow::initializeGL() {
   loadModel(getAssetsPath() + "chamferbox.obj");
   loadBunny();
   loadGround();
-  m_mappingMode = 0;  // "From mesh" option
-
-  // Initial trackball spin
+  m_mappingMode = 0;
 }
 
+// Load bunny and define it own texture
 void OpenGLWindow::loadBunny() {
   m_bunny.terminateGL();
 
@@ -142,6 +141,7 @@ void OpenGLWindow::loadBunny() {
   m_trianglesOfBunny = m_bunny.getNumTriangles();
 }
 
+// Load ground and define it own texture
 void OpenGLWindow::loadGround() {
   m_ground.terminateGL();
 
@@ -150,6 +150,7 @@ void OpenGLWindow::loadGround() {
   m_ground.setupVAO(m_programs.at(m_currentProgramIndex));
 }
 
+// Load model, usado para carregar os blocos das paredes do labirinto
 void OpenGLWindow::loadModel(std::string_view path) {
   m_model.terminateGL();
 
@@ -165,7 +166,7 @@ void OpenGLWindow::loadModel(std::string_view path) {
   m_Ks = m_model.getKs();
   m_shininess = m_model.getShininess();
 
-  loadMaze();
+  loadMaze();  // Carrega as posições dos blocos das paredes do labirinto
 }
 
 void OpenGLWindow::paintGL() {
@@ -200,6 +201,8 @@ void OpenGLWindow::paintGL() {
       abcg::glGetUniformLocation(program, "mappingMode")};
 
   // Set uniform variables used by every scene object
+  // .. A matrix de transformação para o espaço da camera foi alterado para ser
+  // .. armazenado dentro do objeto da câmera
   abcg::glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE,
                            &m_camera.m_viewMatrix[0][0]);
   abcg::glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE,
@@ -214,14 +217,22 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform4fv(IdLoc, 1, &m_Id.x);
   abcg::glUniform4fv(IsLoc, 1, &m_Is.x);
 
+  // ## m_modelMatrix armazena as matrizes dos modelos
+  // ## Entre 0 e 197 estão armazenados os blocos das paredes
+  // ## A posição 198 é destinada ao coelho
+  // ## A posição 199 é destinada ao chão
+
+  // Percorre cada bloco do labirinto
   for (const auto i : iter::range(m_wallPositions.size())) {
     const auto& position{m_wallPositions.at(i)};
 
+    // Coloca o bloco na posição
     m_modelMatrix.at(i) = glm::translate(m_modelMatrix.at(i), position);
 
     // Set uniform variables of the current object
-    abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE,
-                             &m_modelMatrix.at(i)[0][0]);
+    abcg::glUniformMatrix4fv(
+        modelMatrixLoc, 1, GL_FALSE,
+        &m_modelMatrix.at(i)[0][0]);  // Define a matriz do modelo
 
     const auto modelViewMatrix{
         glm::mat3(m_camera.m_viewMatrix * m_modelMatrix.at(i))};
@@ -236,7 +247,7 @@ void OpenGLWindow::paintGL() {
     m_model.render(m_trianglesToDraw);
   }
 
-  // BUNNY
+  // Cria o coelho (bunny) no final do labirinto (Objetivo)
   {
     m_modelMatrix.at(198) =
         glm::translate(m_modelMatrix.at(198), {0.0f, 0.0f, -20.0f});
@@ -256,7 +267,7 @@ void OpenGLWindow::paintGL() {
     m_bunny.render(m_trianglesOfBunny);
   }
 
-  // GROUND
+  // Cria o chão do labirinto
   {
     m_modelMatrix.at(199) =
         glm::translate(m_modelMatrix.at(199), {0.0f, -1.0f, -10.0f});
@@ -283,6 +294,8 @@ void OpenGLWindow::paintGL() {
 
 void OpenGLWindow::paintUI() {
   abcg::OpenGLWindow::paintUI();
+  // Para manter a tela mais limpa e melhor pra jogar, manteve-se apenas um
+  // widget para ser mostrado quando o jogador vence o jogo.
 
   // Create main window widget
   {
@@ -325,12 +338,13 @@ void OpenGLWindow::terminateGL() {
 void OpenGLWindow::update() {
   const float deltaTime{static_cast<float>(getDeltaTime())};
 
-  // Wait 5 seconds before restarting
+  // Wait 5 seconds before restarting the game
   if (m_gameData.m_state == State::Win && m_restartWaitTimer.elapsed() > 5) {
     restart();
     return;
   }
 
+  // Reset model matrix
   for (const auto i : iter::range(m_wallPositions.size() + 2)) {
     m_modelMatrix.at(i) = glm::mat4(1.0f);
   }

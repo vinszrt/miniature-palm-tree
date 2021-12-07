@@ -1,2 +1,2 @@
-add_subdirectory(labirinto3)
+add_subdirectory(labirinto)
 
